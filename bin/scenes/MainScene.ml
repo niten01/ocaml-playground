@@ -101,8 +101,7 @@ module Impl : SceneSign.S = struct
     SceneCommons.render_to_screen
       (fun () ->
         draw_fps 10 (get_screen_height () - 20);
-        UIAnim.draw scene.hand_anim_rect scene.hand_anim;
-        Player.draw_2d scene.common.player)
+        UIAnim.draw scene.hand_anim_rect scene.hand_anim)
       scene.common
 
   let update scene =
@@ -111,14 +110,15 @@ module Impl : SceneSign.S = struct
     Vector3.set_y scene.picture_pos
       (Vector3.y scene.picture_pos +. picture_pos_y);
 
-    let look_ray = SceneCommons.get_screen_to_world_ray common in
     let picture_bbox = get_picture_bbox scene.picture_tex scene.picture_pos in
     match UIAnim.finished scene.hand_anim with
     | true -> ({ scene with common }, Some SceneEnumerator.GraveyardScene)
     | false ->
+        let interacted, common =
+          SceneCommons.interacted picture_bbox scene.common
+        in
         let hand_anim =
-          if SceneCommons.interacted look_ray picture_bbox then
-            scene.hand_anim |> UIAnim.restart |> UIAnim.start
+          if interacted then scene.hand_anim |> UIAnim.restart |> UIAnim.start
           else scene.hand_anim
         in
         let hand_anim = UIAnim.update hand_anim in
