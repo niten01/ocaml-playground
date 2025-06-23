@@ -13,7 +13,7 @@ type t = {
 let create path_to_anim frame_width slow_scale =
   let anim_tex = load_texture path_to_anim in
   let width = Texture2D.width anim_tex in
-  let max_frame = width / frame_width in
+  let max_frame = (width / frame_width) - 1 in
   {
     anim_tex;
     max_frame;
@@ -55,4 +55,4 @@ let update ui_anim =
 let start ui_anim = { ui_anim with started = true }
 let started ui_anim = ui_anim.started
 let finished ui_anim = ui_anim.current_frame = ui_anim.max_frame
-let restart ui_anim = { ui_anim with current_frame = 0;  }
+let restart ui_anim = { ui_anim with current_frame = 0 }

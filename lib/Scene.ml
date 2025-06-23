@@ -3,6 +3,7 @@ module type S = sig
   type t
 
   val load : unit  -> t
+  val unload : t -> unit
   val draw : t -> unit
   val update : t  -> t * id option
 end

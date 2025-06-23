@@ -60,7 +60,12 @@ void main()
             }
 
             float NdotL = max(dot(normal, light), 0.0);
-            lightDot += lights[i].color.rgb*NdotL*lights[i].strength;
+            float distCoeff = 1.0/distance(lights[i].position, fragPosition) * lights[i].strength;
+            if (lights[i].type == LIGHT_DIRECTIONAL)
+            {
+                distCoeff = lights[i].strength;
+            }
+            lightDot += lights[i].color.rgb*NdotL*distCoeff;
 
             float specCo = 0.0;
             if (NdotL > 0.0) specCo = pow(max(0.0, dot(viewD, reflect(-(light), normal))), 16.0); // 16 refers to shine

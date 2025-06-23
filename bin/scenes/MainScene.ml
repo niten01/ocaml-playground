@@ -10,7 +10,7 @@ module Impl : SceneSign.S = struct
     hand_anim_rect : Rectangle.t;
   }
 
-  let picture_size = 10.
+  let picture_size = 1.
 
   let get_picture_bbox picture_tex picture_pos =
     let w = float (Texture2D.width picture_tex) *. picture_size in
@@ -28,32 +28,30 @@ module Impl : SceneSign.S = struct
 
   let load () =
     let player =
-      Player.create (Vector3.create (-50.) 0. 0.) LookDirection.XPlus
-    in
-    let pillar_obj =
-      Object.create "resources/models/doric_pillar.glb"
-        (Vector3.create 0. 0. 0.)
-      |> Object.set_transform (Utils.xzy_to_xyz_transform 1.)
+      Player.create "resources/audio/sounds/steps_marble"
+        (Vector3.create (-5.) 0. 0.)
+        LookDirection.XPlus
     in
     let pillars =
       List.init 20 (fun i ->
           [
-            Object.set_position
-              (Vector3.create (float i *. 50.) 0. 50.)
-              pillar_obj;
-            Object.set_position
-              (Vector3.create (float i *. 50.) 0. (-50.))
-              pillar_obj;
+            Object.create "resources/models/doric_pillar.glb"
+              (Vector3.create (float i *. 5.) 0. 5.)
+            |> Object.set_transform (Utils.xzy_to_xyz_transform 0.1);
+            Object.create "resources/models/doric_pillar.glb"
+              (Vector3.create (float i *. 5.) 0. (-5.))
+            |> Object.set_transform (Utils.xzy_to_xyz_transform 0.1);
           ])
       |> List.flatten
     in
     let floor =
-      Object.create "resources/models/marble_floor.glb" (Vector3.zero ())
-      |> Object.set_transform @@ Matrix.scale 1000. 1000. 1000.
-      |> Object.set_position (Vector3.create 0. (-0.1) 0.)
+      Object.create_no_collision "resources/models/marble_floor.glb"
+        (Vector3.zero ())
+      |> Object.set_transform @@ Matrix.scale 200. 200. 200.
+      |> Object.set_position (Vector3.create 0. 0. 0.)
     in
     let picture_tex = load_texture "resources/textures/picture1.png" in
-    let picture_pos = Vector3.create 450. 20. 0. in
+    let picture_pos = Vector3.create 45. 2. 0. in
     let lighting =
       LightingSystem.create ()
       |> LightingSystem.add_dir_light (Vector3.create 0. 0. 0.)
@@ -63,7 +61,6 @@ module Impl : SceneSign.S = struct
            (Color.create 250 220 200 255)
     in
     let objects = pillars @ [ floor ] in
-    let postprocess_shader_path = "resources/shaders/postprocess_main.fs" in
     let hand_anim = UIAnim.create "resources/textures/hand_anim1.png" 128 8 in
     let hand_anim_size = get_screen_width () / 2 in
     let hand_anim_rect =
@@ -72,14 +69,24 @@ module Impl : SceneSign.S = struct
         (float @@ (get_screen_height () - hand_anim_size))
         (float hand_anim_size) (float hand_anim_size)
     in
+    let postprocess_shader_path = "resources/shaders/postprocess_main.fs" in
+    let ambient_music_path =
+      "resources/audio/music/Ekkehard Ehlers - Round_Rund.mp3"
+    in
     {
       common =
-        SceneCommons.create objects lighting player postprocess_shader_path;
+        SceneCommons.create objects lighting player postprocess_shader_path
+          ambient_music_path;
       picture_tex;
       picture_pos;
       hand_anim;
       hand_anim_rect;
     }
+
+  let unload (scene : t) =
+    SceneCommons.destroy scene.common;
+    UIAnim.destroy scene.hand_anim;
+    unload_texture scene.picture_tex
 
   let draw (scene : t) =
     SceneCommons.render_to_texture
@@ -88,34 +95,28 @@ module Impl : SceneSign.S = struct
         DebugUtils.draw_axis ();
         SceneCommons.draw scene.common;
         let camera = Player.get_view scene.common.player in
-        draw_billboard camera scene.picture_tex scene.picture_pos 10.
-          Color.white;
-        draw_bounding_box
-          (get_picture_bbox scene.picture_tex scene.picture_pos)
-          Color.red)
+        draw_billboard camera scene.picture_tex scene.picture_pos 1. Color.white)
       scene.common;
 
     SceneCommons.render_to_screen
       (fun () ->
         draw_fps 10 (get_screen_height () - 20);
-        UIAnim.draw scene.hand_anim_rect scene.hand_anim;
-        Player.draw_2d scene.common.player)
+        UIAnim.draw scene.hand_anim_rect scene.hand_anim)
       scene.common
 
   let update scene =
     let common = SceneCommons.update scene.common in
-    let picture_pos_y = (sin @@ (get_time () *. 2.0)) *. 0.04 in
+    let picture_pos_y = (sin @@ (get_time () *. 2.0)) *. 0.004 in
     Vector3.set_y scene.picture_pos
       (Vector3.y scene.picture_pos +. picture_pos_y);
 
-    let look_ray = SceneCommons.get_screen_to_world_ray common in
     let picture_bbox = get_picture_bbox scene.picture_tex scene.picture_pos in
     match UIAnim.finished scene.hand_anim with
     | true -> ({ scene with common }, Some SceneEnumerator.GraveyardScene)
     | false ->
+        let interacted = SceneCommons.interacted picture_bbox common in
         let hand_anim =
-          if SceneCommons.interacted look_ray picture_bbox then
-            scene.hand_anim |> UIAnim.restart |> UIAnim.start
+          if interacted then scene.hand_anim |> UIAnim.restart |> UIAnim.start
           else scene.hand_anim
         in
         let hand_anim = UIAnim.update hand_anim in

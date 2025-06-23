@@ -1,4 +1,4 @@
-let to_module (id : SceneEnumerator.t) =
+let get_named_handler (id : SceneEnumerator.t) =
   match id with
-  | MainScene -> (module MainScene : SceneSign.S)
-  | GraveyardScene -> (module GraveyardScene : SceneSign.S)
+  | MainScene -> ((module MainScene : SceneSign.S), "gallery")
+  | GraveyardScene -> ((module GraveyardScene : SceneSign.S), "graveyard")

@@ -8,6 +8,7 @@ end
 
 module Light = struct
   type t = {
+    tag : string;
     enabled : bool;
     light_type : LightType.t;
     strength : float;
@@ -22,8 +23,11 @@ module Light = struct
     color_loc : ShaderLoc.t;
   }
 
+  let tag t = t.tag
+
   let default =
     {
+      tag = "";
       enabled = false;
       light_type = LightType.Point;
       strength = 0.0;
@@ -63,13 +67,16 @@ let create () =
     failwith "Failed to compile lighting shader";
   { lights = Array.make max_lights Light.default; light_count = 0; shader }
 
-let create_point_light position strength color system =
+let destroy system = unload_shader system.shader
+
+let create_tagged_point_light tag position strength color system =
   let get_loc_name loc =
     Printf.sprintf "lights[%i].%s" system.light_count loc
   in
   let get_loc loc = get_shader_location system.shader (get_loc_name loc) in
   let light =
     {
+      tag;
       Light.enabled = true;
       light_type = LightType.Point;
       strength;
@@ -86,13 +93,18 @@ let create_point_light position strength color system =
   in
   light
 
-let add_point_light position strength color system =
-  let light = create_point_light position strength color system in
+let add_tagged_point_light tag position strength color system =
+  let light = create_tagged_point_light tag position strength color system in
   system.lights.(system.light_count) <- light;
   { system with light_count = system.light_count + 1 }
 
+let add_point_light position strength color system =
+  add_tagged_point_light "" position strength color system
+
 let add_dir_light position target strength color system =
-  let point_light = create_point_light position strength color system in
+  let point_light =
+    create_tagged_point_light "" position strength color system
+  in
   let light =
     {
       point_light with
@@ -104,6 +116,14 @@ let add_dir_light position target strength color system =
   { system with light_count = system.light_count + 1 }
 
 let shader system = system.shader
+
+let set_light_position tag position system =
+  let lights =
+    Array.map
+      (fun l -> if Light.tag l = tag then { l with position } else l)
+      system.lights
+  in
+  { system with lights }
 
 let update_shader system camera =
   let shader = system.shader in
@@ -140,5 +160,10 @@ let update_shader system camera =
       ShaderUniformDataType.Vec4
   done
 
-let begin_system system = begin_shader_mode system.shader
+let begin_system system =
+  (* for i = 0 to system.light_count - 1 do *)
+  (*   draw_sphere system.lights.(i).position 1. system.lights.(i).color *)
+  (* done; *)
+  begin_shader_mode system.shader
+
 let end_system () = end_shader_mode ()

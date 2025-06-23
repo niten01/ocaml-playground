@@ -1,7 +1,8 @@
 open Raylib
 
-let player_height = 20.
-let player_width = 10.
+let player_height = 2.
+let player_width = 1.
+let step_freq_max_frame = 45
 
 type t = {
   old_position : Vector3.t;
@@ -9,11 +10,14 @@ type t = {
   fpcamera : FPCamera.t;
   speed : float;
   bbox : BoundingBox.t;
+  step_sounds : Sound.t array;
+  step_frame_counter : int;
 }
 
 let get_view player = FPCamera.get_native_camera player.fpcamera
 let fpcamera player = player.fpcamera
 let bbox player = player.bbox
+let position player = player.position
 
 let calc_bbox position =
   let bot =
@@ -25,20 +29,29 @@ let calc_bbox position =
   in
   BoundingBox.create bot top
 
-let create initial_position look_dir =
+let create step_sound_dir initial_position look_dir =
   let camera =
     FPCamera.create
       (Vector3.add initial_position (Vector3.create 0. player_height 0.))
       look_dir
   in
   let bbox = calc_bbox initial_position in
+  let step_sounds =
+    Array.map
+      (fun filename -> load_sound Filename.(concat step_sound_dir filename))
+      (Sys.readdir step_sound_dir)
+  in
   {
     position = initial_position;
     old_position = initial_position;
     fpcamera = camera;
-    speed = 1.;
+    speed = 0.1;
     bbox;
+    step_sounds;
+    step_frame_counter = 0;
   }
+
+let destroy player = Array.iter unload_sound player.step_sounds
 
 let draw_2d (player : t) =
   let fpcamera = player.fpcamera in
@@ -95,7 +108,19 @@ let update (player : t) =
 
   FPCamera.add_position player.fpcamera velocity;
   FPCamera.update player.fpcamera;
-  { player with position; bbox; old_position }
+
+  let equals_zero v = Vector3.x v = 0. && Vector3.y v = 0. && Vector3.z v = 0. in
+  let step_frame_counter =
+    if not @@ equals_zero velocity then
+      if player.step_frame_counter >= step_freq_max_frame then (
+        play_sound
+        @@ Array.get player.step_sounds
+             (Random.int @@ Array.length player.step_sounds);
+        0)
+      else player.step_frame_counter + 1
+    else step_freq_max_frame 
+  in
+  { player with position; bbox; old_position; step_frame_counter }
 
 let undo_movement player =
   let delta = Vector3.subtract player.old_position player.position in
