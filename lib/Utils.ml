@@ -14,4 +14,5 @@ let xzy_to_xyz_transform scale =
 let deg_to_rad v = v *. Float.pi /. 180.
 let random_float min max = Random.float (max -. min) +. min
 
-module StringMap = Map.Make(String)
+module StringMap = Map.Make (String)
+module StringSet = Set.Make (String)

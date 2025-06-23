@@ -20,6 +20,8 @@
           raylib
           raygui)
  (tags
-  ("game" "3d" "raylib")))
+  ("game" "3d" "raylib"))
+ )
+
 
 ; See the complete stanza docs at https://dune.readthedocs.io/en/stable/reference/dune-project/index.html

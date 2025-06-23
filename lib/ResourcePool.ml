@@ -27,6 +27,7 @@ let use file =
   match existing_idx_opt with
   | None ->
       let new_model = load_model file in
+      Printf.printf "INFO: Allocated resource - %s \n%!" file;
       instance :=
         {
           models =
@@ -39,7 +40,12 @@ let use file =
         {
           models =
             List.mapi
-              (fun i r -> if i = idx then ModelRC.increment r else r)
+              (fun i r ->
+                if i = idx then (
+                  Printf.printf "INFO: RC++ for %s = %i \n%!" file
+                    (ModelRC.counter r + 1);
+                  ModelRC.increment r)
+                else r)
               !instance.models;
         };
       ModelRC.resource (List.nth !instance.models idx)
@@ -53,10 +59,17 @@ let free file =
   | Some idx ->
       let models =
         List.mapi
-          (fun i r -> if i = idx then ModelRC.decrement r else r)
+          (fun i r ->
+            if i = idx then (
+              Printf.printf "INFO: RC-- for %s = %i \n%!" file
+                (ModelRC.counter r - 1);
+              ModelRC.decrement r)
+            else r)
           !instance.models
         |> List.filter (fun r ->
                if ModelRC.counter r = 0 then (
+                 Printf.printf "INFO: Unloaded resource - %s \n%!"
+                   (ModelRC.source r);
                  unload_model @@ ModelRC.resource r;
                  false)
                else true)

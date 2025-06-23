@@ -1,4 +1,4 @@
 (library
  (name ocaml_playground)
- (libraries raylib )
+ (libraries raylib)
  )

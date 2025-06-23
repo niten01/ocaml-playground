@@ -2,6 +2,8 @@ open Raylib
 
 let interaction_distance = 6.0
 let flashlight_tag = "flashlight"
+let mute_volume = 0.1
+let mute_fade_in_frames = 120
 
 type t = {
   objects : Object.t list;
@@ -9,8 +11,9 @@ type t = {
   player : Player.t;
   postprocess_shader : Shader.t;
   ambient_music : Music.t;
+  ambient_mute_frame_counter : int;
   start_anim : UIAnim.t;
-  can_interact : bool;
+  mutable can_interact_ui : bool;
   interact_texture : Texture2D.t;
 }
 
@@ -23,6 +26,10 @@ let prevent_player_collision objects player =
     Player.undo_movement player
   else player
 
+let mute_for seconds common =
+  set_music_volume common.ambient_music mute_volume;
+  { common with ambient_mute_frame_counter = seconds * 60 }
+
 let draw_interaction_texture (scene : t) =
   let w, h =
     ( float @@ Texture2D.width scene.interact_texture,
@@ -31,8 +38,8 @@ let draw_interaction_texture (scene : t) =
   let scale = 0.2 in
   draw_texture_ex scene.interact_texture
     (Vector2.create
-       ((float @@ (get_screen_width () / 2)) -. w *. scale *. 0.5)
-       ((float @@ (get_screen_height () / 2)) -. h *. scale *. 0.5))
+       ((float @@ (get_screen_width () / 2)) -. (w *. scale *. 0.5))
+       ((float @@ (get_screen_height () / 2)) -. (h *. scale *. 0.5)))
     0. scale Color.white
 
 let create objects lighting player postprocess_shader_path ambient_music_path =
@@ -70,8 +77,9 @@ let create objects lighting player postprocess_shader_path ambient_music_path =
     player;
     postprocess_shader;
     ambient_music;
+    ambient_mute_frame_counter = 0;
     start_anim;
-    can_interact = false;
+    can_interact_ui = false;
     interact_texture;
   }
 
@@ -105,7 +113,7 @@ let draw (scene : t) =
   LightingSystem.update_shader lighting (Player.get_view player);
   List.iter Object.draw scene.objects;
   LightingSystem.end_system ()
-  (* List.iter (fun o -> draw_bounding_box (Object.bbox o) Color.red) scene.objects *)
+(* List.iter (fun o -> draw_bounding_box (Object.bbox o) Color.red) scene.objects *)
 
 let render_to_texture (draw_f : unit -> unit) scene =
   begin_texture_mode (get_render_texture ());
@@ -130,7 +138,7 @@ let render_to_screen (draw_overlay_f : unit -> unit) scene =
   end_shader_mode ();
   draw_overlay_f ();
   Player.draw_2d scene.player;
-  if scene.can_interact then draw_interaction_texture scene;
+  if scene.can_interact_ui then draw_interaction_texture scene;
 
   UIAnim.draw
     (Rectangle.create (-8.) 0.
@@ -144,12 +152,31 @@ let update (scene : t) =
     Player.update scene.player |> prevent_player_collision scene.objects
   in
   update_music_stream scene.ambient_music;
+  let ambient_mute_frame_counter =
+    scene.ambient_mute_frame_counter
+    - if scene.ambient_mute_frame_counter > 0 then 1 else 0
+  in
+  if ambient_mute_frame_counter <= mute_fade_in_frames then
+    set_music_volume scene.ambient_music
+      (mute_volume
+      +. (1.0 -. mute_volume)
+         *. (float (mute_fade_in_frames - ambient_mute_frame_counter)
+            /. float mute_fade_in_frames));
+  if ambient_mute_frame_counter == 0 then
+    set_music_volume scene.ambient_music 1.0;
   let start_anim = UIAnim.update scene.start_anim in
   let lighting =
     LightingSystem.set_light_position flashlight_tag (Player.position player)
       scene.lighting
   in
-  { scene with player; start_anim; lighting }
+  {
+    scene with
+    player;
+    start_anim;
+    lighting;
+    ambient_mute_frame_counter;
+    can_interact_ui = false;
+  }
 
 let get_screen_to_world_ray (scene : t) =
   let camera = Player.get_view scene.player in
@@ -160,8 +187,8 @@ let get_screen_to_world_ray (scene : t) =
 let interacted bbox common =
   let look_ray = get_screen_to_world_ray common in
   let col = get_ray_collision_box look_ray bbox in
-  let can_interact =
+  let can_interact_with_current =
     RayCollision.hit col && RayCollision.distance col < interaction_distance
   in
-  ( is_mouse_button_pressed MouseButton.Left && can_interact,
-    { common with can_interact } )
+  common.can_interact_ui <- can_interact_with_current || common.can_interact_ui;
+  is_mouse_button_pressed MouseButton.Left && can_interact_with_current

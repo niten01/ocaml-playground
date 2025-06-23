@@ -40,7 +40,7 @@ let setup () =
   FPCamera.set_sensitivity 0.5;
   let scene_name_font = load_font "resources/fonts/Times New Roman.ttf" in
   let (module StartSceneHandler), start_scene_name =
-    SceneConverter.get_named_handler SceneEnumerator.GraveyardScene
+    SceneConverter.get_named_handler SceneEnumerator.MainScene
   in
   draw_loading_screen scene_name_font start_scene_name;
   let scene_data = StartSceneHandler.load () in

@@ -4,26 +4,50 @@ let sleep_frames = 2
 
 type t = {
   text : string list;
+  sounds : Sound.t option list;
   part_counter : int;
   char_counter : int;
   started : bool;
   font_handle : Font.t;
   sleep_frames_counter : int;
   idle_counter : int;
+  finished : bool;
 }
 
-let create text_parts font_handle =
+let create_pro (text_sounds : (string * string option) list) font_handle =
   {
-    text = text_parts;
+    text = List.map fst text_sounds;
+    sounds =
+      List.map
+        (fun p ->
+          match snd p with None -> None | Some file -> Some (load_sound file))
+        text_sounds;
     part_counter = 0;
     char_counter = 0;
     started = false;
     font_handle;
     sleep_frames_counter = 0;
     idle_counter = 0;
+    finished = false;
   }
 
+let destroy this =
+  List.iter
+    (fun s -> if Option.is_some s then unload_sound @@ Option.get s)
+    this.sounds
+
+let create text_parts font_handle =
+  create_pro (List.map (fun t -> (t, None)) text_parts) font_handle
+
+let check_play_sound this part_counter =
+  if part_counter >= List.length this.sounds then ()
+  else
+    match List.nth this.sounds part_counter with
+    | None -> ()
+    | Some sound -> play_sound sound
+
 let start this =
+  check_play_sound this 0;
   {
     this with
     started = true;
@@ -31,7 +55,10 @@ let start this =
     char_counter = 0;
     sleep_frames_counter = 0;
     idle_counter = 0;
+    finished = false;
   }
+
+let finished this = this.finished
 
 let draw this =
   match this.started with
@@ -59,8 +86,9 @@ let update this =
       then { this with sleep_frames_counter = this.sleep_frames_counter + 1 }
       else
         let part_counter, char_counter =
-          if this.char_counter == cur_part_len && is_key_pressed Key.Space then
-            (this.part_counter + 1, 0)
+          if this.char_counter == cur_part_len && is_key_pressed Key.Space then (
+            check_play_sound this (this.part_counter + 1);
+            (this.part_counter + 1, 0))
           else if is_key_pressed Key.Space then (this.part_counter, cur_part_len)
           else if this.char_counter < cur_part_len then
             (this.part_counter, this.char_counter + 1)
@@ -72,6 +100,7 @@ let update this =
           else this.idle_counter
         in
         let started = part_counter < List.length this.text in
+        let finished = not started in
         {
           this with
           char_counter;
@@ -79,4 +108,5 @@ let update this =
           started;
           idle_counter;
           sleep_frames_counter = 0;
+          finished;
         }

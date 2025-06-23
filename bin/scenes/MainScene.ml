@@ -114,9 +114,7 @@ module Impl : SceneSign.S = struct
     match UIAnim.finished scene.hand_anim with
     | true -> ({ scene with common }, Some SceneEnumerator.GraveyardScene)
     | false ->
-        let interacted, common =
-          SceneCommons.interacted picture_bbox scene.common
-        in
+        let interacted = SceneCommons.interacted picture_bbox common in
         let hand_anim =
           if interacted then scene.hand_anim |> UIAnim.restart |> UIAnim.start
           else scene.hand_anim

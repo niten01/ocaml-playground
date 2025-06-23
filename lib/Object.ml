@@ -17,6 +17,7 @@ let shift_bbox delta bbox =
 
 let set_bbox bbox obj = { obj with bbox }
 let bbox obj = obj.bbox
+let set_no_collision value obj = { obj with no_collide = value }
 
 let apply_shader shader obj =
   if obj.no_light then ()
