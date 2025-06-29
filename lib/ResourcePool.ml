@@ -22,7 +22,7 @@ let instance : t ref = ref { models = [] }
 
 let use file =
   let existing_idx_opt =
-    List.find_index (fun mrc -> ModelRC.source mrc = file) !instance.models
+    Utils.find_index (fun mrc -> ModelRC.source mrc = file) !instance.models
   in
   match existing_idx_opt with
   | None ->
