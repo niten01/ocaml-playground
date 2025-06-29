@@ -51,7 +51,7 @@ module Impl : SceneSign.S = struct
       |> Object.set_position (Vector3.create 0. 0. 0.)
     in
     let picture_tex = load_texture "resources/textures/picture1.png" in
-    let picture_pos = Vector3.create 45. 2. 0. in
+    let picture_pos = Vector3.create 42.5 2. 5. in
     let lighting =
       LightingSystem.create ()
       |> LightingSystem.add_dir_light (Vector3.create 0. 0. 0.)

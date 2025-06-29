@@ -1,5 +1,6 @@
 open Raylib
 open Ocaml_playground
+open Transforms
 
 let randomize_frame_counter = ref 0
 
@@ -47,31 +48,6 @@ module Impl : SceneSign.S = struct
       |> Object.set_transform @@ Matrix.scale 100. 100. 100.
     in
     let g_model_name name = "resources/models/graveyard/" ^ name ^ ".glb" in
-    let std scale = Object.set_transform @@ Utils.xzy_to_xyz_transform scale in
-    let rot_y ang =
-      Object.apply_transform @@ Matrix.rotate_y @@ Utils.deg_to_rad ang
-    in
-    let std_rot_y scale ang = fun o -> o |> std scale |> rot_y ang in
-    let scale_rot_y scale ang =
-     fun o ->
-      o |> Object.apply_transform @@ Matrix.scale scale scale scale |> rot_y ang
-    in
-    let rot_move_up ang dist =
-     fun o ->
-      o |> rot_y ang |> Object.apply_transform @@ Matrix.translate 0. dist 0.
-    in
-    let std_rot_move_up scale ang dist =
-     fun o -> o |> std scale |> rot_move_up ang dist
-    in
-    let scale_rot_y_move_up scale ang dist =
-     fun o -> o |> scale_rot_y scale ang |> rot_move_up 0. dist
-    in
-    let scale_rot_z_move_up scale ang dist =
-     fun o ->
-      o
-      |> Object.apply_transform @@ Matrix.rotate_z @@ Utils.deg_to_rad ang
-      |> scale_rot_y_move_up scale 0. dist
-    in
     let graveyard_opts =
       Utils.StringMap.of_seq
       @@ List.to_seq
@@ -82,8 +58,8 @@ module Impl : SceneSign.S = struct
              ("gravestone3", scale_rot_y 2. (-90.));
              ("graveplate", std_rot_y 2. 180.);
              ("cross1", std_rot_y 2. 180.);
-             ("cross2", rot_move_up (-90.) 0.7);
-             ("cross3", rot_move_up (-90.) 0.7);
+             ("cross2", rot_y_move_up (-90.) 0.7);
+             ("cross3", rot_y_move_up (-90.) 0.7);
              ("big_tomb1", std_rot_y 2. 90.);
              ("big_tomb2", scale_rot_y_move_up 2. (-90.) 0.6);
              ("angel_statue1", scale_rot_z_move_up 0.5 180. (-4.));
@@ -191,11 +167,14 @@ module Impl : SceneSign.S = struct
            0.5
            (Color.create 180 180 230 255)
       |> LightingSystem.add_point_light
-           (Vector3.create 48. 5. 42.)
-           2. Color.white
+           (Vector3.create 48. 6. 41.)
+           1. Color.white
       |> LightingSystem.add_point_light
            (Vector3.create (-48.) 5. 51.)
-           1.5 Color.skyblue
+           2. Color.skyblue
+      |> LightingSystem.add_point_light
+           (Vector3.create (-48.) 8. (-47.))
+           1.5 Color.white
       |> LightingSystem.add_point_light
            (Vector3.create 54. 5. (-39.))
            1.5 Color.darkbrown
@@ -213,7 +192,9 @@ module Impl : SceneSign.S = struct
     List.iter
       (Object.apply_shader @@ LightingSystem.shader lighting)
       flying_stuff;
-    let postprocess_shader_path = "resources/shaders/postprocess_main.fs" in
+    let postprocess_shader_path =
+      "resources/shaders/postprocess_graveyard.fs"
+    in
     let ambient_music_path =
       "resources/audio/music/Joseph Suchy - Soan-Ne (remastered).mp3"
     in
@@ -395,7 +376,10 @@ module Impl : SceneSign.S = struct
 
   let update scene =
     let common = scene.common |> SceneCommons.update in
-    let sky = rotate_sky scene.sky in
+    let sky =
+      rotate_sky scene.sky
+      |> Object.set_position @@ Player.position @@ SceneCommons.player common
+    in
     let flying_stuff = randomize_flying_stuff scene.flying_stuff in
     let interacted =
       SceneCommons.interacted (Object.bbox scene.statue_obj) common
