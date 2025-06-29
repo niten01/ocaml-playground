@@ -31,13 +31,17 @@ module Impl : SceneSign.S = struct
           let area = 100. in
           Object.create_no_collision random_path
             (Utils.random_vec3 (-.area, area) (0., 0.) (-.area, area))
-          |> scale_rot_y 10. random_rot)
+          |> scale_rot_y 7. random_rot)
     in
-    let objects = [ ground_obj ] @ foliage in
+    let smile_obj =
+      Object.create "resources/models/steppes/smile.glb" (Vector3.zero ())
+      |> scale_rot_z_move_up 30. (10.) 2. |> rot_x (-60.)
+    in
+    let objects = [ ground_obj; smile_obj ] @ foliage in
     let lighting =
       LightingSystem.create ()
       |> LightingSystem.add_dir_light (Vector3.create 0. 0. 0.)
-           (Vector3.create 0.3 (-1.) 0.7)
+           (Vector3.create 1. (-1.) 0.)
            0.1
            (Color.create 130 80 20 255)
       (* Color.white *)
