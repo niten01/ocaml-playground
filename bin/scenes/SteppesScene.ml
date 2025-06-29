@@ -7,7 +7,7 @@ module Impl : SceneSign.S = struct
 
   let load () =
     let player =
-      Player.create "resources/audio/sounds/steps_barefeet"
+      Player.create "resources/audio/sounds/steps_grass"
         (Vector3.create (-60.) 0. 0.)
         LookDirection.XPlus
     in

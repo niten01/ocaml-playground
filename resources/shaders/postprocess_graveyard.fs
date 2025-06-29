@@ -121,7 +121,7 @@ void main()
     vec4 baseColor = bloom(texture0, fragTexCoord);
 
     float avg = (baseColor.r+baseColor.g+baseColor.b)/3.0;
-    baseColor = mix(baseColor, vec4(avg,avg,avg,1.0), 0.35);
+    baseColor = mix(baseColor, vec4(avg,avg,avg,1.0), 0.55);
 
     baseColor = posterize(baseColor);
 
