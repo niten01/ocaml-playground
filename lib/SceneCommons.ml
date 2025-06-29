@@ -7,6 +7,7 @@ let mute_fade_in_frames = 120
 
 type t = {
   objects : Object.t list;
+  sky : Object.t option;
   lighting : LightingSystem.t;
   player : Player.t;
   postprocess_shader : Shader.t;
@@ -45,7 +46,7 @@ let draw_interaction_texture (scene : t) =
 let create objects lighting player postprocess_shader_path ambient_music_path =
   let lighting =
     LightingSystem.add_tagged_point_light flashlight_tag
-      (Player.position player) 0.04 Color.white lighting
+      (Player.position player) 0.5 Color.white lighting
   in
   let shader = LightingSystem.shader lighting in
   List.iter (fun obj -> Object.apply_shader shader obj) objects;
@@ -73,6 +74,7 @@ let create objects lighting player postprocess_shader_path ambient_music_path =
   let interact_texture = load_texture "resources/textures/interact_icon.png" in
   {
     objects;
+    sky = None;
     lighting;
     player;
     postprocess_shader;
@@ -105,6 +107,8 @@ let get_render_texture () =
 let get_text_font () =
   match !text_font with None -> failwith "text font not loaded" | Some f -> f
 
+let set_sky sky scene = { scene with sky = Some sky }
+
 let draw (scene : t) =
   let lighting = scene.lighting in
   let player = scene.player in
@@ -112,6 +116,7 @@ let draw (scene : t) =
   LightingSystem.begin_system lighting;
   LightingSystem.update_shader lighting (Player.get_view player);
   List.iter Object.draw scene.objects;
+  if Option.is_some scene.sky then Object.draw @@ Option.get scene.sky;
   LightingSystem.end_system ()
 (* List.iter (fun o -> draw_bounding_box (Object.bbox o) Color.red) scene.objects *)
 
@@ -151,6 +156,12 @@ let update (scene : t) =
   let player =
     Player.update scene.player |> prevent_player_collision scene.objects
   in
+  let sky =
+    match scene.sky with
+    | None -> scene.sky
+    | Some sky_obj ->
+        Some (sky_obj |> Object.set_position @@ Player.position player)
+  in
   update_music_stream scene.ambient_music;
   let ambient_mute_frame_counter =
     scene.ambient_mute_frame_counter
@@ -172,6 +183,7 @@ let update (scene : t) =
   {
     scene with
     player;
+    sky;
     start_anim;
     lighting;
     ambient_mute_frame_counter;
@@ -192,3 +204,5 @@ let interacted bbox common =
   in
   common.can_interact_ui <- can_interact_with_current || common.can_interact_ui;
   is_mouse_button_pressed MouseButton.Left && can_interact_with_current
+
+let player common = common.player

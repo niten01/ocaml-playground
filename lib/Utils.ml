@@ -14,5 +14,19 @@ let xzy_to_xyz_transform scale =
 let deg_to_rad v = v *. Float.pi /. 180.
 let random_float min max = Random.float (max -. min) +. min
 
+let random_vec3 xb yb zb =
+  Vector3.create
+    (random_float (fst xb) (snd xb))
+    (random_float (fst yb) (snd yb))
+    (random_float (fst zb) (snd zb))
+
+(* Windows system-msvc has 4.14 (!) compiler *)
+let find_index p =
+  let rec aux i = function
+    | [] -> None
+    | a :: l -> if p a then Some i else aux (i + 1) l
+  in
+  aux 0
+
 module StringMap = Map.Make (String)
 module StringSet = Set.Make (String)

@@ -1,1 +1,1 @@
-type t = MainScene | GraveyardScene
+type t = MainScene | GraveyardScene | SteppesScene

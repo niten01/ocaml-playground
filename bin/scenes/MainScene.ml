@@ -51,13 +51,13 @@ module Impl : SceneSign.S = struct
       |> Object.set_position (Vector3.create 0. 0. 0.)
     in
     let picture_tex = load_texture "resources/textures/picture1.png" in
-    let picture_pos = Vector3.create 45. 2. 0. in
+    let picture_pos = Vector3.create 42.5 2. 5. in
     let lighting =
       LightingSystem.create ()
       |> LightingSystem.add_dir_light (Vector3.create 0. 0. 0.)
            (Vector3.create 1. (-1.) (-1.))
            1.0 Color.white
-      |> LightingSystem.add_point_light picture_pos 0.5
+      |> LightingSystem.add_point_light picture_pos 2.5
            (Color.create 250 220 200 255)
     in
     let objects = pillars @ [ floor ] in

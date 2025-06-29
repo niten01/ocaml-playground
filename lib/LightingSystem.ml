@@ -46,22 +46,18 @@ end
 type t = { lights : Light.t array; light_count : int; shader : Shader.t }
 
 let max_lights = 10
-let vec4_from_accessors f a b c d = Vector4.create (f a) (f b) (f c) (f d)
+let vec3_from_accessors f a b c = Vector3.create (f a) (f b) (f c)
 
-let color_to_vec4 color =
-  vec4_from_accessors
+let color_to_vec3 color =
+  vec3_from_accessors
     (fun acc -> (float @@ acc color) /. 255.)
-    Color.r Color.g Color.b Color.a
+    Color.r Color.g Color.b
 
 let create () =
   let shader =
     load_shader "resources/shaders/lighting.vs" "resources/shaders/lighting.fs"
   in
-  let ambient_loc = get_shader_location shader "ambient" in
   let view_pos_loc = get_shader_location shader "viewPos" in
-  set_shader_value shader ambient_loc
-    (to_voidp @@ addr @@ color_to_vec4 Color.black)
-    ShaderUniformDataType.Vec4;
   Shader.set_loc shader ShaderLocationIndex.Vector_view view_pos_loc;
   if Shader.id shader = Unsigned.UInt.zero then
     failwith "Failed to compile lighting shader";
@@ -156,8 +152,8 @@ let update_shader system camera =
       (to_voidp @@ addr @@ Option.value light.target ~default:(Vector3.zero ()))
       ShaderUniformDataType.Vec3;
     set_shader_value shader light.color_loc
-      (to_voidp @@ addr @@ color_to_vec4 light.color)
-      ShaderUniformDataType.Vec4
+      (to_voidp @@ addr @@ color_to_vec3 light.color)
+      ShaderUniformDataType.Vec3
   done
 
 let begin_system system =
