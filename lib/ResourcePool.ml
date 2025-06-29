@@ -52,7 +52,7 @@ let use file =
 
 let free file =
   let existing_idx_opt =
-    List.find_index (fun m -> ModelRC.source m = file) !instance.models
+    Utils.find_index (fun m -> ModelRC.source m = file) !instance.models
   in
   match existing_idx_opt with
   | None -> failwith "Trying to free resource that was not allocated"
